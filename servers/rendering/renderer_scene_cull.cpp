@@ -2199,17 +2199,16 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 		RENDER_TIMESTAMP("Cull DirectionalLight3D, Split " + itos(i));
 
 		// setup a camera matrix for that range!
-		Projection camera_matrix;
-
-		real_t aspect = p_cam_projection.get_aspect();
+		Projection camera_matrix = p_cam_projection;
+		real_t split_near = distances[(i == 0 || !overlap) ? i : i - 1];
+		real_t split_far = distances[i + 1];
 
 		if (p_cam_orthogonal) {
-			Vector2 vp_he = p_cam_projection.get_viewport_half_extents();
-
-			camera_matrix.set_orthogonal(vp_he.y * 2.0, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], false);
+			camera_matrix.columns[2][2] = -2.0 / (split_far - split_near);
+			camera_matrix.columns[3][2] = -(split_far + split_near) / (split_far - split_near);
 		} else {
-			real_t fov = p_cam_projection.get_fov(); //this is actually yfov, because set aspect tries to keep it
-			camera_matrix.set_perspective(fov, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], true);
+			camera_matrix.columns[2][2] = -(split_far + split_near) / (split_far - split_near);
+			camera_matrix.columns[3][2] = -2.0 * split_far * split_near / (split_far - split_near);
 		}
 
 		//obtain the frustum endpoints
